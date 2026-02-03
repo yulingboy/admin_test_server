@@ -13,22 +13,6 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      # 可选：运行测试
-      # - name: Run tests
-      #   run: npm test
-
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -37,21 +21,56 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            REPO_URL="${{ secrets.REPO_URL }}"
             
-            # 备份当前版本（可选）
-            # tar -czf backup_$(date +%Y%m%d_%H%M%S).tar.gz --exclude=node_modules --exclude=.git .
+            # 如果目录不存在，创建并克隆
+            if [ ! -d "$DEPLOY_PATH" ]; then
+              echo "目录不存在，创建并克隆..."
+              mkdir -p "$DEPLOY_PATH"
+              cd "$DEPLOY_PATH"
+              git clone "$REPO_URL" .
+            elif [ ! -d "$DEPLOY_PATH/.git" ]; then
+              # 目录存在但不是 git 仓库
+              echo "目录存在但无 Git 仓库，重新克隆..."
+              cd "$DEPLOY_PATH"
+              rm -rf ./*
+              git clone "$REPO_URL" .
+            else
+              # 已有 Git 仓库，直接拉取
+              echo "拉取最新代码..."
+              cd "$DEPLOY_PATH"
+              git pull origin $(git rev-parse --abbrev-ref HEAD)
+            fi
             
-            # 拉取最新代码
-            git pull origin $(git rev-parse --abbrev-ref HEAD)
+            # 进入项目目录
+            cd "$DEPLOY_PATH"
             
-            # 安装依赖
-            npm ci --production
+            # 检查是否有 package-lock.json
+            if [ -f "package-lock.json" ]; then
+              echo "使用 npm ci 安装依赖..."
+              npm ci --production
+            else
+              echo "使用 npm install 安装依赖..."
+              npm install --production
+            fi
             
-            # 重启应用
-            pm2 reload ecosystem.config.js --env production || pm2 start ecosystem.config.js --env production
+            # 检查 ecosystem.config.js 是否存在
+            if [ ! -f "ecosystem.config.js" ]; then
+              echo "错误: ecosystem.config.js 不存在"
+              exit 1
+            fi
             
-            # 保存 PM2 进程列表
+            # 启动/重启应用
+            if pm2 list | grep -q "back-master"; then
+              echo "重启应用..."
+              pm2 reload ecosystem.config.js --env production
+            else
+              echo "启动应用..."
+              pm2 start ecosystem.config.js --env production
+            fi
+            
+            # 保存 PM2 配置
             pm2 save
             
             echo "Deployment completed at $(date)"
