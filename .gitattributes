@@ -1,7 +1,0 @@
-# 强制 shell 脚本使用 LF 换行符
-*.sh text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
-
-# 其他文本文件自动处理
-* text=auto
