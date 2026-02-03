@@ -26,16 +26,21 @@
 
 ### 1. 本地生成 SSH 密钥对
 
-在本地电脑生成密钥对（不要设置密码）：
+GitHub Actions 需要 SSH 连接到服务器执行部署命令，使用密钥对进行身份验证：
 
 ```bash
 ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github_actions
 # 一路回车，不设置密码
 ```
 
-会生成两个文件：
-- `~/.ssh/github_actions`（私钥）→ 复制内容到 GitHub Secrets `SSH_PRIVATE_KEY`
-- `~/.ssh/github_actions.pub`（公钥）→ 添加到服务器
+生成两个配对的文件：
+
+| 文件 | 存放位置 | 作用 |
+|------|---------|------|
+| `github_actions`（私钥） | GitHub Secrets | GitHub Actions 用它证明"我是谁" |
+| `github_actions.pub`（公钥） | 服务器的 `~/.ssh/authorized_keys` | 服务器用它验证"你是谁" |
+
+**类比**：私钥是钥匙，公钥是锁。GitHub Actions 拿着钥匙（私钥），服务器检查钥匙是否匹配锁（公钥），匹配才允许进入执行命令。
 
 ### 2. 服务器端一键部署
 
