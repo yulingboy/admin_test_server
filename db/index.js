@@ -1,6 +1,5 @@
-// 导入mysql数据库
-// npm install mysql
-const mysql = require('mysql')
+// 导入mysql2数据库（兼容mysql API，支持MySQL 8.0认证）
+const mysql = require('mysql2')
 
 // 创建与数据库的连接
 const db = mysql.createPool({
