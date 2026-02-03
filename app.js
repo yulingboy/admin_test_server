@@ -1,3 +1,8 @@
+// 加载环境变量
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config()
+}
+
 // 导入express框架
 const express = require('express')
 // 创建express实例
