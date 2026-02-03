@@ -102,7 +102,7 @@ app.use(function (err, req, res, next) {
 	)
 });
 
-// 绑定和侦听指定的主机和端口
+// 绑定和侦听指定的主机和端口1
 app.listen(3007, () => {
 	console.log('http://127.0.0.1:3007')
 })
