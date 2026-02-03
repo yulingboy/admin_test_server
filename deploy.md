@@ -2,43 +2,62 @@
 
 ## 📋 前置要求
 
-### 1. 服务器端准备
+### 1. 生成 SSH 密钥对
+
+在本地电脑生成密钥对（不要设置密码）：
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github_actions
+# 一路回车，不设置密码
+```
+
+会生成两个文件：
+- `~/.ssh/github_actions`（私钥）→ 复制内容到 GitHub Secrets `SSH_PRIVATE_KEY`
+- `~/.ssh/github_actions.pub`（公钥）→ 添加到服务器
+
+### 2. 服务器端准备
 
 在你的服务器上执行以下操作：
 
 ```bash
-# 1. 安装 Node.js 18+ 和 npm
+# 1. 上传公钥到服务器（在本地执行）
+ssh-copy-id -i ~/.ssh/github_actions.pub root@你的服务器IP
+
+# 然后登录服务器继续以下步骤...
+ssh root@你的服务器IP
+
+# 4. 安装 Node.js 18+ 和 npm
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# 2. 安装 PM2 进程管理器
+# 5. 安装 PM2 进程管理器
 sudo npm install -g pm2
 
-# 3. 安装 MySQL（如果还没有安装）
+# 6. 安装 MySQL（如果还没有安装）
 sudo apt-get install -y mysql-server
 
-# 4. 创建项目目录并克隆代码
+# 7. 创建项目目录并克隆代码
 mkdir -p /var/www/back-master
 cd /var/www/back-master
 git clone https://github.com/your-username/your-repo.git .
 
-# 5. 安装依赖
+# 8. 安装依赖
 npm ci --production
 
-# 6. 配置环境变量
+# 9. 配置环境变量
 cp .env.example .env
 nano .env  # 编辑配置
 
-# 7. 初始化数据库
+# 10. 初始化数据库
 mysql -u root -p < back_system.sql
 
-# 8. 首次启动应用
+# 11. 首次启动应用
 pm2 start ecosystem.config.js --env production
 pm2 save
 pm2 startup  # 设置开机自启
 ```
 
-### 2. 配置 GitHub Secrets
+### 3. 配置 GitHub Secrets
 
 在 GitHub 仓库页面，进入 **Settings → Secrets and variables → Actions**，添加以下 Secrets：
 
@@ -46,14 +65,11 @@ pm2 startup  # 设置开机自启
 |------------|------|------|
 | `SERVER_HOST` | 服务器 IP 或域名 | `192.168.1.100` |
 | `SERVER_USER` | SSH 登录用户名 | `root` 或 `ubuntu` |
-| `SERVER_PASSWORD` | SSH 登录密码 | `your_password` |
+| `SSH_PRIVATE_KEY` | SSH 私钥内容 | 见下方生成方法 |
 | `SERVER_PORT` | SSH 端口（可选） | `22` |
 | `DEPLOY_PATH` | 项目部署路径 | `/var/www/back-master` |
 
-**如果使用密钥登录（推荐）**：
-- 删除 `SERVER_PASSWORD` secret
-- 添加 `SSH_PRIVATE_KEY` secret，值为私钥内容
-- 在服务器上添加对应的公钥到 `~/.ssh/authorized_keys`
+
 
 ## 🚀 部署流程
 
